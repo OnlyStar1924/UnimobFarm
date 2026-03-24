@@ -21,6 +21,8 @@ public class BoxController : MonoBehaviour
     [SerializeField] private GameObject constructionPrefab;
     [SerializeField] private Transform constructionSpawnPoint;
 
+    [Header("Spawner")]
+    [SerializeField] private DeliverySpawner deliverySpawner;
     private bool isOpened;
 
     public ConstructionType ConstructionType => constructionType;
@@ -114,8 +116,13 @@ public class BoxController : MonoBehaviour
         {
             construction.Initialize(constructionType);
         }
-    }
 
+        if (deliverySpawner == null)
+            deliverySpawner = FindObjectOfType<DeliverySpawner>();
+
+        if (deliverySpawner != null)
+            deliverySpawner.SpawnDelivery();
+    }
     public Vector3 GetPopupWorldPosition()
     {
         if (popupAnchor != null)
