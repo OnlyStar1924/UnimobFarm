@@ -27,10 +27,21 @@ public class ConstructionUpgradeView : MonoBehaviour
     [Header("Close Delay")]
     [SerializeField] private float closeEnableDelay = 0.15f;
 
+    [Header("Upgrade Button Punch")]
+    [SerializeField] private RectTransform upgradeButtonRect;
+    [SerializeField] private float downScale = 0.8f;
+    [SerializeField] private float upScale = 1.1f;
+    [SerializeField] private float downDuration = 0.06f;
+    [SerializeField] private float upDuration = 0.08f;
+    [SerializeField] private float returnDuration = 0.08f;
+
     private Camera mainCamera;
     private RectTransform rectTransform;
     private ConstructionController currentConstruction;
     private bool canClose;
+
+    private Coroutine punchRoutine;
+    private Vector3 upgradeButtonDefaultScale = Vector3.one;
 
     private void Awake()
     {
@@ -42,6 +53,12 @@ public class ConstructionUpgradeView : MonoBehaviour
 
         if (upgradeButton != null)
             upgradeButton.onClick.AddListener(OnClickUpgrade);
+
+        if (upgradeButtonRect == null && upgradeButton != null)
+            upgradeButtonRect = upgradeButton.GetComponent<RectTransform>();
+
+        if (upgradeButtonRect != null)
+            upgradeButtonDefaultScale = upgradeButtonRect.localScale;
 
         if (root != null)
             root.SetActive(false);
@@ -116,12 +133,51 @@ public class ConstructionUpgradeView : MonoBehaviour
 
     private void OnClickUpgrade()
     {
+        PlayUpgradeButtonPunch();
+
         if (currentConstruction == null) return;
 
         bool success = currentConstruction.TryUpgrade();
         if (!success) return;
 
         RefreshUI();
+    }
+
+    private void PlayUpgradeButtonPunch()
+    {
+        if (upgradeButtonRect == null) return;
+
+        if (punchRoutine != null)
+            StopCoroutine(punchRoutine);
+
+        punchRoutine = StartCoroutine(PunchRoutine());
+    }
+
+    private IEnumerator PunchRoutine()
+    {
+        yield return ScaleTo(upgradeButtonDefaultScale * downScale, downDuration);
+        yield return ScaleTo(upgradeButtonDefaultScale * upScale, upDuration);
+        yield return ScaleTo(upgradeButtonDefaultScale, returnDuration);
+
+        punchRoutine = null;
+    }
+
+    private IEnumerator ScaleTo(Vector3 targetScale, float duration)
+    {
+        if (upgradeButtonRect == null) yield break;
+
+        Vector3 startScale = upgradeButtonRect.localScale;
+        float time = 0f;
+
+        while (time < duration)
+        {
+            time += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(time / duration);
+            upgradeButtonRect.localScale = Vector3.Lerp(startScale, targetScale, t);
+            yield return null;
+        }
+
+        upgradeButtonRect.localScale = targetScale;
     }
 
     private void RefreshUI()
