@@ -42,6 +42,7 @@ public class UpgradeView : MonoBehaviour
         if (root != null)
             root.SetActive(true);
 
+        SetAllConstructionInfoVisible(false);
         RefreshList();
     }
 
@@ -49,6 +50,21 @@ public class UpgradeView : MonoBehaviour
     {
         if (root != null)
             root.SetActive(false);
+
+        SetAllConstructionInfoVisible(true);
+    }
+
+    private void SetAllConstructionInfoVisible(bool visible)
+    {
+        ConstructionController[] constructions = FindObjectsOfType<ConstructionController>();
+
+        for (int i = 0; i < constructions.Length; i++)
+        {
+            if (visible)
+                constructions[i].ShowInfoView();
+            else
+                constructions[i].HideInfoView();
+        }
     }
 
     private void CreateSampleData()

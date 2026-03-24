@@ -72,6 +72,9 @@ public class ConstructionUpgradeView : MonoBehaviour
 
     public void Hide()
     {
+        if (currentConstruction != null)
+            currentConstruction.ShowInfoView();
+
         currentConstruction = null;
         canClose = false;
 

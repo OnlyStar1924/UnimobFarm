@@ -13,6 +13,7 @@ public class ConstructionController : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] private Transform popupAnchor;
+    [SerializeField] private Transform infoAnchor;
 
     [Header("Delivery")]
     [SerializeField] private Transform deliveryPoint;
@@ -23,6 +24,7 @@ public class ConstructionController : MonoBehaviour
 
     private readonly List<GameObject> spawnedProducts = new List<GameObject>();
     private ConstructionUpgradeView upgradeView;
+    private ConstructionInfoView infoView;
     private ConstructionUpgradeConfigSO config;
     private float extraProfitMultiplier = 1f;
 
@@ -35,6 +37,7 @@ public class ConstructionController : MonoBehaviour
     private void Awake()
     {
         upgradeView = FindObjectOfType<ConstructionUpgradeView>();
+        infoView = GetComponentInChildren<ConstructionInfoView>(true);
     }
 
     public void Initialize(ConstructionType type)
@@ -50,6 +53,12 @@ public class ConstructionController : MonoBehaviour
         if (config == null)
             Debug.LogError($"Config not found for {constructionType}", this);
 
+        if (infoView == null)
+            infoView = GetComponentInChildren<ConstructionInfoView>(true);
+
+        if (infoView != null)
+            infoView.Bind(this);
+
         StartCoroutine(GrowRoutine());
     }
 
@@ -58,8 +67,23 @@ public class ConstructionController : MonoBehaviour
         if (upgradeView == null)
             upgradeView = FindObjectOfType<ConstructionUpgradeView>();
 
+        if (infoView != null)
+            infoView.Hide();
+
         if (upgradeView != null)
             upgradeView.Show(this);
+    }
+
+    public void HideInfoView()
+    {
+        if (infoView != null)
+            infoView.Hide();
+    }
+
+    public void ShowInfoView()
+    {
+        if (infoView != null)
+            infoView.Show();
     }
 
     private IEnumerator GrowRoutine()
@@ -116,6 +140,14 @@ public class ConstructionController : MonoBehaviour
             return popupAnchor.position;
 
         return transform.position + Vector3.up * 1.5f;
+    }
+
+    public Vector3 GetInfoWorldPosition()
+    {
+        if (infoAnchor != null)
+            return infoAnchor.position;
+
+        return transform.position + Vector3.up * 1.2f;
     }
 
     public Vector3 GetDeliveryPointPosition()
