@@ -14,6 +14,9 @@ public class ConstructionController : MonoBehaviour
     [Header("UI")]
     [SerializeField] private Transform popupAnchor;
 
+    [Header("Delivery")]
+    [SerializeField] private Transform deliveryPoint;
+
     [Header("Product")]
     [SerializeField] private GameObject tomatoPrefab;
     [SerializeField] private List<Transform> spawnPoints = new List<Transform>();
@@ -113,6 +116,14 @@ public class ConstructionController : MonoBehaviour
             return popupAnchor.position;
 
         return transform.position + Vector3.up * 1.5f;
+    }
+
+    public Vector3 GetDeliveryPointPosition()
+    {
+        if (deliveryPoint != null)
+            return deliveryPoint.position;
+
+        return transform.position;
     }
 
     public string GetDisplayName()

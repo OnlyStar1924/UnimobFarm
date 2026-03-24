@@ -132,7 +132,7 @@ public class ConstructionUpgradeView : MonoBehaviour
             productText.text = currentConstruction.GetDisplayName();
 
         if (coinText != null)
-            coinText.text = currentConstruction.GetBatchSellPrice().ToString();
+            coinText.text = NumberFormatter.Format(currentConstruction.GetBatchSellPrice());
 
         if (timeText != null)
             timeText.text = $"{currentConstruction.GrowInterval:0.#}s";
@@ -156,7 +156,7 @@ public class ConstructionUpgradeView : MonoBehaviour
             maxObject.SetActive(isMax);
 
         if (!isMax && upgradeText != null)
-            upgradeText.text = currentConstruction.GetUpgradeCost().ToString();
+            upgradeText.text = NumberFormatter.Format(currentConstruction.GetUpgradeCost());
     }
 
     private void UpdatePosition()

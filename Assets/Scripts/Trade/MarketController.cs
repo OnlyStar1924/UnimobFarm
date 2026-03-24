@@ -14,7 +14,6 @@ public class MarketController : MonoBehaviour
     public Transform CustomerStart => customerStart;
     public Transform CustomerEnd => customerEnd;
     public Transform DeliveryEnd => deliveryEnd;
-
     public int MaxQueueCount => docks.Count;
     public int CurrentQueueCount => customerQueue.Count;
 
@@ -31,7 +30,7 @@ public class MarketController : MonoBehaviour
 
     public bool HasWaitingCustomer()
     {
-        return customerQueue.Count > 0 && customerQueue[0] != null && customerQueue[0].IsWaiting;
+        return customerQueue.Count > 0;
     }
 
     public bool EnqueueCustomer(CustomerController customer)
@@ -44,6 +43,7 @@ public class MarketController : MonoBehaviour
         RefreshQueuePositions();
         return true;
     }
+
     public void ServeNextCustomer(HarvestedItem item)
     {
         if (item == null) return;
@@ -59,22 +59,17 @@ public class MarketController : MonoBehaviour
 
         GameManager.Instance.AddGold(item.SellPrice);
 
-        if (docks.Count > 0 && docks[0] != null && docks[0].CurrencyPoint != null)
+        if (EffectManager.Instance != null)
         {
-            if (EffectManager.Instance != null)
-                EffectManager.Instance.PlayPay(docks[0].CurrencyPoint.position);
+            MarketDockPoint mainDock = GetMainDock();
+            if (mainDock != null && mainDock.CurrencyPoint != null)
+                EffectManager.Instance.PlayPay(mainDock.CurrencyPoint.position);
         }
 
         customer.CompletePurchase(customerEnd.position);
 
         customerQueue.RemoveAt(0);
         RefreshQueuePositions();
-    }
-
-    public MarketDockPoint GetNextFreeDock()
-    {
-        if (!HasFreeSlot()) return null;
-        return docks[customerQueue.Count];
     }
 
     public void RefreshQueuePositions()
@@ -84,7 +79,9 @@ public class MarketController : MonoBehaviour
             if (customerQueue[i] == null) continue;
             if (i >= docks.Count) continue;
 
-            customerQueue[i].MoveToQueue(docks[i].CustomerPoint.position);
+            Transform point = docks[i].CustomerPoint;
+            if (point != null)
+                customerQueue[i].MoveToQueue(point.position);
         }
     }
 }

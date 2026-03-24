@@ -76,7 +76,7 @@ public class ConstructionBuildView : MonoBehaviour
             nameText.text = currentBox.GetDisplayName();
 
         if (costText != null)
-            costText.text = currentBox.UnlockCost.ToString();
+            costText.text = NumberFormatter.Format(currentBox.UnlockCost);
 
         if (productIcon != null)
             productIcon.sprite = GetIconByType(currentBox.ConstructionType);

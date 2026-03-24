@@ -1,10 +1,11 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 public class DeliveryController : MonoBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 2.5f;
-    [SerializeField] private float interactDistance = 0.1f;
+    [SerializeField] private NavMeshAgent agent;
+    [SerializeField] private float interactDistance = 0.35f;
     [SerializeField] private float harvestTime = 0.5f;
 
     [Header("Animator")]
@@ -20,9 +21,6 @@ public class DeliveryController : MonoBehaviour
     private ConstructionController targetConstruction;
     private HarvestedItem carryingItem;
 
-    private Vector3 targetPosition;
-    private bool isMoving;
-
     private enum State
     {
         Idle,
@@ -35,8 +33,21 @@ public class DeliveryController : MonoBehaviour
     private State currentState;
     private float timer;
 
+    private bool IsMoving
+    {
+        get
+        {
+            if (agent == null) return false;
+            if (agent.pathPending) return true;
+            return agent.remainingDistance > agent.stoppingDistance;
+        }
+    }
+
     private void Awake()
     {
+        if (agent == null)
+            agent = GetComponent<NavMeshAgent>();
+
         if (animator == null)
             animator = GetComponentInChildren<Animator>(true);
 
@@ -52,13 +63,18 @@ public class DeliveryController : MonoBehaviour
         if (carryVisual != null)
             carryVisual.HideAll();
 
+        if (agent != null)
+        {
+            agent.stoppingDistance = interactDistance;
+            agent.updateRotation = true;
+            agent.updateUpAxis = true;
+        }
+
         UpdateAnimation();
     }
 
     private void Update()
     {
-        UpdateMove();
-
         switch (currentState)
         {
             case State.Idle:
@@ -85,45 +101,37 @@ public class DeliveryController : MonoBehaviour
         UpdateAnimation();
     }
 
-    private void UpdateMove()
-    {
-        if (!isMoving) return;
-
-        Vector3 direction = targetPosition - transform.position;
-        direction.y = 0f;
-
-        if (direction.sqrMagnitude > 0.0001f)
-            transform.forward = direction.normalized;
-
-        transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
-
-        if (Vector3.Distance(transform.position, targetPosition) <= interactDistance)
-        {
-            transform.position = targetPosition;
-            isMoving = false;
-        }
-    }
-
     private void FindConstruction()
     {
         ConstructionController[] constructions = FindObjectsOfType<ConstructionController>();
 
-        foreach (var construction in constructions)
+        float bestDistance = float.MaxValue;
+        ConstructionController bestTarget = null;
+
+        for (int i = 0; i < constructions.Length; i++)
         {
-            if (construction.HasFullBatch())
+            if (!constructions[i].HasFullBatch())
+                continue;
+
+            float pathDistance = GetPathDistance(constructions[i].GetDeliveryPointPosition());
+            if (pathDistance < bestDistance)
             {
-                targetConstruction = construction;
-                targetPosition = construction.transform.position;
-                isMoving = true;
-                currentState = State.MoveToConstruction;
-                return;
+                bestDistance = pathDistance;
+                bestTarget = constructions[i];
             }
+        }
+
+        if (bestTarget != null)
+        {
+            targetConstruction = bestTarget;
+            MoveTo(targetConstruction.GetDeliveryPointPosition());
+            currentState = State.MoveToConstruction;
         }
     }
 
     private void CheckArriveConstruction()
     {
-        if (isMoving) return;
+        if (agent == null || IsMoving) return;
 
         if (targetConstruction == null)
         {
@@ -143,15 +151,12 @@ public class DeliveryController : MonoBehaviour
         carryingItem = targetConstruction.HarvestBatch();
 
         if (carryingItem != null && carryVisual != null)
-        {
             carryVisual.ShowAmount(carryingItem.Amount);
-        }
 
         MarketDockPoint dock = market != null ? market.GetMainDock() : null;
         if (carryingItem != null && dock != null && dock.DeliveryPoint != null)
         {
-            targetPosition = dock.DeliveryPoint.position;
-            isMoving = true;
+            MoveTo(dock.DeliveryPoint.position);
             currentState = State.MoveToMarket;
         }
         else
@@ -162,21 +167,23 @@ public class DeliveryController : MonoBehaviour
 
     private void CheckArriveMarket()
     {
-        if (isMoving) return;
+        if (agent == null || IsMoving) return;
 
-        if (market != null && carryingItem != null && market.HasWaitingCustomer())
+        if (market != null && carryingItem != null)
         {
-            market.ServeNextCustomer(carryingItem);
-            carryingItem = null;
+            if (market.HasWaitingCustomer())
+            {
+                market.ServeNextCustomer(carryingItem);
+                carryingItem = null;
 
-            if (carryVisual != null)
-                carryVisual.HideAll();
+                if (carryVisual != null)
+                    carryVisual.HideAll();
+            }
         }
 
         if (market != null && market.DeliveryEnd != null)
         {
-            targetPosition = market.DeliveryEnd.position;
-            isMoving = true;
+            MoveTo(market.DeliveryEnd.position);
             currentState = State.ReturnToEnd;
         }
         else
@@ -187,8 +194,36 @@ public class DeliveryController : MonoBehaviour
 
     private void CheckArriveEnd()
     {
-        if (isMoving) return;
+        if (agent == null || IsMoving) return;
         currentState = State.Idle;
+    }
+
+    private void MoveTo(Vector3 destination)
+    {
+        if (agent == null) return;
+
+        agent.isStopped = false;
+        agent.SetDestination(destination);
+    }
+
+    private float GetPathDistance(Vector3 destination)
+    {
+        if (agent == null) return float.MaxValue;
+
+        NavMeshPath path = new NavMeshPath();
+        if (!agent.CalculatePath(destination, path))
+            return float.MaxValue;
+
+        if (path.status != NavMeshPathStatus.PathComplete)
+            return float.MaxValue;
+
+        float total = 0f;
+        for (int i = 1; i < path.corners.Length; i++)
+        {
+            total += Vector3.Distance(path.corners[i - 1], path.corners[i]);
+        }
+
+        return total;
     }
 
     private void UpdateAnimation()
@@ -196,6 +231,7 @@ public class DeliveryController : MonoBehaviour
         if (animator == null) return;
 
         bool isCarrying = carryingItem != null;
+        bool isMoving = IsMoving;
 
         animator.SetBool(isMoveParam, false);
         animator.SetBool(isCarryMoveParam, false);

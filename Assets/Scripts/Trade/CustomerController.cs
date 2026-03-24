@@ -1,10 +1,12 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class CustomerController : MonoBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 2f;
+    [SerializeField] private NavMeshAgent agent;
+    [SerializeField] private float interactDistance = 0.2f;
 
     [Header("Animator")]
     [SerializeField] private Animator animator;
@@ -15,8 +17,6 @@ public class CustomerController : MonoBehaviour
     [Header("Carry Visual")]
     [SerializeField] private DeliveryCarryVisual carryVisual;
 
-    private Vector3 targetPosition;
-    private bool isMoving;
     private bool isWaiting;
     private bool isCarrying;
 
@@ -24,6 +24,16 @@ public class CustomerController : MonoBehaviour
     private CustomerPool pool;
 
     public bool IsWaiting => isWaiting;
+
+    private bool IsMoving
+    {
+        get
+        {
+            if (agent == null) return false;
+            if (agent.pathPending) return true;
+            return agent.remainingDistance > agent.stoppingDistance;
+        }
+    }
 
     public void SetSpawner(CustomerSpawner customerSpawner)
     {
@@ -37,6 +47,9 @@ public class CustomerController : MonoBehaviour
 
     private void Awake()
     {
+        if (agent == null)
+            agent = GetComponent<NavMeshAgent>();
+
         if (animator == null)
             animator = GetComponentInChildren<Animator>(true);
 
@@ -45,36 +58,21 @@ public class CustomerController : MonoBehaviour
 
         if (carryVisual != null)
             carryVisual.HideAll();
+
+        if (agent != null)
+            agent.stoppingDistance = interactDistance;
     }
 
     private void Update()
     {
-        UpdateMove();
         UpdateAnimation();
-    }
-
-    private void UpdateMove()
-    {
-        if (!isMoving) return;
-
-        Vector3 direction = targetPosition - transform.position;
-        direction.y = 0f;
-
-        if (direction.sqrMagnitude > 0.0001f)
-            transform.forward = direction.normalized;
-
-        transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
-
-        if (Vector3.Distance(transform.position, targetPosition) <= 0.05f)
-        {
-            transform.position = targetPosition;
-            isMoving = false;
-        }
     }
 
     private void UpdateAnimation()
     {
         if (animator == null) return;
+
+        bool isMoving = IsMoving;
 
         animator.SetBool(isMoveParam, false);
         animator.SetBool(isCarryMoveParam, false);
@@ -100,12 +98,17 @@ public class CustomerController : MonoBehaviour
         transform.position = spawnPosition;
         transform.rotation = spawnRotation;
 
-        isMoving = false;
         isWaiting = false;
         isCarrying = false;
 
         if (carryVisual != null)
             carryVisual.HideAll();
+
+        if (agent != null)
+        {
+            agent.Warp(spawnPosition);
+            agent.ResetPath();
+        }
     }
 
     public void MoveToQueue(Vector3 queuePosition)
@@ -116,8 +119,11 @@ public class CustomerController : MonoBehaviour
         if (carryVisual != null)
             carryVisual.HideAll();
 
-        targetPosition = queuePosition;
-        isMoving = true;
+        if (agent != null)
+        {
+            agent.isStopped = false;
+            agent.SetDestination(queuePosition);
+        }
     }
 
     public void CompletePurchase(Vector3 exitPosition)
@@ -128,15 +134,18 @@ public class CustomerController : MonoBehaviour
         if (carryVisual != null)
             carryVisual.ShowAmount(3);
 
-        targetPosition = exitPosition;
-        isMoving = true;
+        if (agent != null)
+        {
+            agent.isStopped = false;
+            agent.SetDestination(exitPosition);
+        }
 
         StartCoroutine(ReturnAfterReach(exitPosition));
     }
 
     private IEnumerator ReturnAfterReach(Vector3 exitPosition)
     {
-        while (Vector3.Distance(transform.position, exitPosition) > 0.05f)
+        while (agent != null && (agent.pathPending || agent.remainingDistance > agent.stoppingDistance))
         {
             yield return null;
         }

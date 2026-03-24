@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 722cd8c8f1344ab0b7cfa338e23f3b69, type: 3}
+  m_Name: ClayConfig
+  m_EditorClassIdentifier: 
+  constructionType: 2
+  displayName: 
+  maxLevel: 10
+  growInterval: 2
+  maxProductCount: 3
+  levels:
+  - level: 1
+    upgradeCost: 5000
+    pricePerTomato: 500
+  - level: 2
+    upgradeCost: 20000
+    pricePerTomato: 2000
+  - level: 3
+    upgradeCost: 30000
+    pricePerTomato: 3000
+  - level: 4
+    upgradeCost: 40000
+    pricePerTomato: 4000
+  - level: 5
+    upgradeCost: 50000
+    pricePerTomato: 5000
+  - level: 6
+    upgradeCost: 60000
+    pricePerTomato: 6000
+  - level: 7
+    upgradeCost: 70000
+    pricePerTomato: 7000
+  - level: 8
+    upgradeCost: 80000
+    pricePerTomato: 8000
+  - level: 9
+    upgradeCost: 90000
+    pricePerTomato: 9000
+  - level: 10
+    upgradeCost: 0
+    pricePerTomato: 100000

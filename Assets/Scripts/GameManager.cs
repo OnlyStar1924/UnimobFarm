@@ -39,6 +39,6 @@ public class GameManager : MonoBehaviour
     private void UpdateGoldUI()
     {
         if (goldText != null)
-            goldText.text = currentGold.ToString();
+            goldText.text = NumberFormatter.Format(currentGold);
     }
 }

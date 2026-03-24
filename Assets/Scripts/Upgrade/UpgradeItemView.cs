@@ -34,7 +34,7 @@ public class UpgradeItemView : MonoBehaviour
             descText.text = data.desc;
 
         if (costText != null)
-            costText.text = data.cost.ToString();
+            costText.text = NumberFormatter.Format(data.cost);
 
         if (buyButton != null)
             buyButton.interactable = canBuy;
