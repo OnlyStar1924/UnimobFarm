@@ -23,16 +23,20 @@ public class ConstructionController : MonoBehaviour
     [SerializeField] private List<Transform> spawnPoints = new List<Transform>();
 
     private readonly List<GameObject> spawnedProducts = new List<GameObject>();
+
     private ConstructionUpgradeView upgradeView;
     private ConstructionInfoView infoView;
     private ConstructionUpgradeConfigSO config;
     private float extraProfitMultiplier = 1f;
+
+    private DeliveryController reservedBy;
 
     public ConstructionType ConstructionType => constructionType;
     public int Level => level;
     public int MaxLevel => config != null ? config.maxLevel : 10;
     public float GrowInterval => config != null ? config.growInterval : 2f;
     public int MaxProductCount => config != null ? config.maxProductCount : 3;
+    public bool IsReserved => reservedBy != null;
 
     private void Awake()
     {
@@ -117,8 +121,34 @@ public class ConstructionController : MonoBehaviour
         return spawnedProducts.Count >= MaxProductCount;
     }
 
-    public HarvestedItem HarvestBatch()
+    public bool TryReserve(DeliveryController delivery)
     {
+        if (delivery == null) return false;
+
+        if (reservedBy != null && reservedBy != delivery)
+            return false;
+
+        reservedBy = delivery;
+        return true;
+    }
+
+    public void ReleaseReserve(DeliveryController delivery)
+    {
+        if (reservedBy == delivery)
+            reservedBy = null;
+    }
+
+    public Vector3 GetDeliveryPointPosition()
+    {
+        if (deliveryPoint != null)
+            return deliveryPoint.position;
+
+        return transform.position;
+    }
+
+    public HarvestedItem HarvestBatch(DeliveryController delivery)
+    {
+        if (reservedBy != delivery) return null;
         if (!HasFullBatch()) return null;
 
         int sellPriceSnapshot = GetBatchSellPrice();
@@ -130,6 +160,7 @@ public class ConstructionController : MonoBehaviour
         }
 
         spawnedProducts.Clear();
+        reservedBy = null;
 
         return new HarvestedItem(constructionType, sellPriceSnapshot, MaxProductCount);
     }
@@ -148,14 +179,6 @@ public class ConstructionController : MonoBehaviour
             return infoAnchor.position;
 
         return transform.position + Vector3.up * 1.2f;
-    }
-
-    public Vector3 GetDeliveryPointPosition()
-    {
-        if (deliveryPoint != null)
-            return deliveryPoint.position;
-
-        return transform.position;
     }
 
     public string GetDisplayName()

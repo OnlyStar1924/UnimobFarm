@@ -20,6 +20,7 @@ public class DeliveryController : MonoBehaviour
     private MarketController market;
     private ConstructionController targetConstruction;
     private HarvestedItem carryingItem;
+    private MarketDockPoint reservedMarketDock;
 
     private enum State
     {
@@ -103,6 +104,9 @@ public class DeliveryController : MonoBehaviour
 
     private void FindConstruction()
     {
+        if (market == null || !market.HasWaitingCustomer())
+            return;
+
         ConstructionController[] constructions = FindObjectsOfType<ConstructionController>();
 
         float bestDistance = float.MaxValue;
@@ -111,6 +115,9 @@ public class DeliveryController : MonoBehaviour
         for (int i = 0; i < constructions.Length; i++)
         {
             if (!constructions[i].HasFullBatch())
+                continue;
+
+            if (constructions[i].IsReserved)
                 continue;
 
             float pathDistance = GetPathDistance(constructions[i].GetDeliveryPointPosition());
@@ -123,6 +130,9 @@ public class DeliveryController : MonoBehaviour
 
         if (bestTarget != null)
         {
+            bool reserved = bestTarget.TryReserve(this);
+            if (!reserved) return;
+
             targetConstruction = bestTarget;
             MoveTo(targetConstruction.GetDeliveryPointPosition());
             currentState = State.MoveToConstruction;
@@ -148,38 +158,60 @@ public class DeliveryController : MonoBehaviour
         timer -= Time.deltaTime;
         if (timer > 0f) return;
 
-        carryingItem = targetConstruction.HarvestBatch();
-
-        if (carryingItem != null && carryVisual != null)
-            carryVisual.ShowAmount(carryingItem.Amount);
-
-        MarketDockPoint dock = market != null ? market.GetMainDock() : null;
-        if (carryingItem != null && dock != null && dock.DeliveryPoint != null)
-        {
-            MoveTo(dock.DeliveryPoint.position);
-            currentState = State.MoveToMarket;
-        }
-        else
+        if (targetConstruction == null)
         {
             currentState = State.Idle;
+            return;
         }
+
+        carryingItem = targetConstruction.HarvestBatch(this);
+
+        if (carryingItem == null)
+        {
+            targetConstruction.ReleaseReserve(this);
+            targetConstruction = null;
+            currentState = State.Idle;
+            return;
+        }
+
+        if (carryVisual != null)
+            carryVisual.ShowAmount(carryingItem.Amount);
+
+        if (market != null && market.TryReserveDockForDelivery(this, out reservedMarketDock))
+        {
+            if (reservedMarketDock != null && reservedMarketDock.DeliveryPoint != null)
+            {
+                MoveTo(reservedMarketDock.DeliveryPoint.position);
+                currentState = State.MoveToMarket;
+                return;
+            }
+        }
+
+        currentState = State.Idle;
     }
 
     private void CheckArriveMarket()
     {
         if (agent == null || IsMoving) return;
 
-        if (market != null && carryingItem != null)
-        {
-            if (market.HasWaitingCustomer())
-            {
-                market.ServeNextCustomer(carryingItem);
-                carryingItem = null;
+        bool sold = false;
 
-                if (carryVisual != null)
-                    carryVisual.HideAll();
-            }
+        if (market != null && carryingItem != null)
+            sold = market.ServeReservedCustomer(carryingItem, this);
+
+        if (sold)
+        {
+            carryingItem = null;
+
+            if (carryVisual != null)
+                carryVisual.HideAll();
         }
+
+        reservedMarketDock = null;
+        targetConstruction = null;
+
+        if (market != null)
+            market.ReleaseDeliveryReserve(this);
 
         if (market != null && market.DeliveryEnd != null)
         {
