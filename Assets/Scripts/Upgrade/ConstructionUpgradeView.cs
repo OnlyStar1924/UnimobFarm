@@ -28,7 +28,7 @@ public class ConstructionUpgradeView : MonoBehaviour
     [SerializeField] private float closeEnableDelay = 0.15f;
 
     [Header("Upgrade Button Punch")]
-    [SerializeField] private RectTransform upgradeButtonRect;
+    private RectTransform upgradeButtonRect;
     [SerializeField] private float downScale = 0.8f;
     [SerializeField] private float upScale = 1.1f;
     [SerializeField] private float downDuration = 0.06f;
@@ -56,7 +56,10 @@ public class ConstructionUpgradeView : MonoBehaviour
     {
         mainCamera = Camera.main;
         rectTransform = GetComponent<RectTransform>();
-
+        
+        if (upgradeButtonRect == null && upgradeButton != null)
+            upgradeButtonRect = upgradeButton.transform as RectTransform;
+        
         if (closeButton != null)
             closeButton.onClick.AddListener(OnClickClose);
 

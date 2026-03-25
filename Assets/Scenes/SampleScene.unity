@@ -359,6 +359,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: MainView
       objectReference: {fileID: 0}
+    - target: {fileID: 1212884558987155412, guid: 73b8246896ace4b568d8d18c8ea1e2e5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2475487328554312198, guid: 73b8246896ace4b568d8d18c8ea1e2e5, type: 3}
       propertyPath: m_SizeDelta.x
       value: 0
@@ -770,7 +774,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92925e3ec0e3f472b86cb86b62e33b2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentGold: 8000
+  currentGold: 10000
   goldText: {fileID: 2088098288}
 --- !u!4 &493717942
 Transform:
@@ -970,6 +974,9 @@ MonoBehaviour:
   downDuration: 0.06
   upDuration: 0.08
   returnDuration: 0.08
+  shakeDuration: 0.2
+  shakeStrength: 12
+  shakeVibrato: 8
 --- !u!1001 &621877915
 PrefabInstance:
   m_ObjectHideFlags: 0

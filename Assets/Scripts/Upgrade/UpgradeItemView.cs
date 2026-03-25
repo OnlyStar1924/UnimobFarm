@@ -11,8 +11,8 @@ public class UpgradeItemView : MonoBehaviour
     [SerializeField] private Button buyButton;
     [SerializeField] private TMP_Text costText;
 
-    [Header("Button Punch")]
-    [SerializeField] private RectTransform buyButtonRect;
+    [Header("Button Punch")] private RectTransform buyButtonRect;
+
     [SerializeField] private float downScale = 0.8f;
     [SerializeField] private float upScale = 1.1f;
     [SerializeField] private float downDuration = 0.06f;
@@ -36,6 +36,9 @@ public class UpgradeItemView : MonoBehaviour
 
     private void Awake()
     {
+        if (buyButtonRect == null && buyButton != null)
+            buyButtonRect = buyButton.transform as RectTransform;
+        
         if (buyButton != null)
             buyButton.onClick.AddListener(OnClickBuy);
 

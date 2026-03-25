@@ -68,6 +68,9 @@ public class ConstructionController : MonoBehaviour
 
     private void OnMouseDown()
     {
+        if (UpgradeView.IsAnyUpgradeViewOpen)
+            return;
+
         if (upgradeView == null)
             upgradeView = FindObjectOfType<ConstructionUpgradeView>();
 

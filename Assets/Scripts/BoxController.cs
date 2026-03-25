@@ -38,6 +38,8 @@ public class BoxController : MonoBehaviour
     private void OnMouseDown()
     {
         if (isOpened) return;
+        if (UpgradeView.IsAnyUpgradeViewOpen)
+            return;
 
         if (buildView == null)
         {
