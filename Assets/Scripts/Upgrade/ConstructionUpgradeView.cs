@@ -35,13 +35,22 @@ public class ConstructionUpgradeView : MonoBehaviour
     [SerializeField] private float upDuration = 0.08f;
     [SerializeField] private float returnDuration = 0.08f;
 
+    [Header("Upgrade Button Shake")]
+    [SerializeField] private float shakeDuration = 0.2f;
+    [SerializeField] private float shakeStrength = 12f;
+    [SerializeField] private int shakeVibrato = 8;
+
     private Camera mainCamera;
     private RectTransform rectTransform;
     private ConstructionController currentConstruction;
     private bool canClose;
 
-    private Coroutine punchRoutine;
+    private Coroutine animRoutine;
     private Vector3 upgradeButtonDefaultScale = Vector3.one;
+    private Vector2 upgradeButtonDefaultAnchoredPos;
+    private bool isProcessing;
+
+    private float TotalPunchDuration => downDuration + upDuration + returnDuration;
 
     private void Awake()
     {
@@ -58,7 +67,10 @@ public class ConstructionUpgradeView : MonoBehaviour
             upgradeButtonRect = upgradeButton.GetComponent<RectTransform>();
 
         if (upgradeButtonRect != null)
+        {
             upgradeButtonDefaultScale = upgradeButtonRect.localScale;
+            upgradeButtonDefaultAnchoredPos = upgradeButtonRect.anchoredPosition;
+        }
 
         if (root != null)
             root.SetActive(false);
@@ -76,6 +88,19 @@ public class ConstructionUpgradeView : MonoBehaviour
     {
         currentConstruction = construction;
         canClose = false;
+        isProcessing = false;
+
+        if (upgradeButton != null)
+            upgradeButton.interactable = true;
+
+        if (closeButton != null)
+            closeButton.interactable = true;
+
+        if (upgradeButtonRect != null)
+        {
+            upgradeButtonRect.localScale = upgradeButtonDefaultScale;
+            upgradeButtonRect.anchoredPosition = upgradeButtonDefaultAnchoredPos;
+        }
 
         if (root != null)
             root.SetActive(true);
@@ -89,6 +114,8 @@ public class ConstructionUpgradeView : MonoBehaviour
 
     public void Hide()
     {
+        if (isProcessing) return;
+
         if (currentConstruction != null)
             currentConstruction.ShowInfoView();
 
@@ -107,7 +134,7 @@ public class ConstructionUpgradeView : MonoBehaviour
 
     private void OnClickClose()
     {
-        if (!canClose) return;
+        if (!canClose || isProcessing) return;
 
         if (IsPointerInsideFrame())
             return;
@@ -133,13 +160,42 @@ public class ConstructionUpgradeView : MonoBehaviour
 
     private void OnClickUpgrade()
     {
+        if (isProcessing) return;
+        if (currentConstruction == null) return;
+        if (currentConstruction.IsMaxLevel()) return;
+
+        if (!currentConstruction.CanUpgrade())
+        {
+            PlayUpgradeButtonShake();
+            return;
+        }
+
+        StartCoroutine(CoUpgradeAfterPunch());
+    }
+
+    private IEnumerator CoUpgradeAfterPunch()
+    {
+        isProcessing = true;
+
+        if (upgradeButton != null)
+            upgradeButton.interactable = false;
+
+        if (closeButton != null)
+            closeButton.interactable = false;
+
         PlayUpgradeButtonPunch();
 
-        if (currentConstruction == null) return;
+        yield return new WaitForSecondsRealtime(TotalPunchDuration);
 
         bool success = currentConstruction.TryUpgrade();
-        if (!success) return;
 
+        if (!success)
+            PlayUpgradeButtonShake();
+
+        if (closeButton != null)
+            closeButton.interactable = true;
+
+        isProcessing = false;
         RefreshUI();
     }
 
@@ -147,10 +203,20 @@ public class ConstructionUpgradeView : MonoBehaviour
     {
         if (upgradeButtonRect == null) return;
 
-        if (punchRoutine != null)
-            StopCoroutine(punchRoutine);
+        if (animRoutine != null)
+            StopCoroutine(animRoutine);
 
-        punchRoutine = StartCoroutine(PunchRoutine());
+        animRoutine = StartCoroutine(PunchRoutine());
+    }
+
+    private void PlayUpgradeButtonShake()
+    {
+        if (upgradeButtonRect == null) return;
+
+        if (animRoutine != null)
+            StopCoroutine(animRoutine);
+
+        animRoutine = StartCoroutine(ShakeRoutine());
     }
 
     private IEnumerator PunchRoutine()
@@ -159,7 +225,26 @@ public class ConstructionUpgradeView : MonoBehaviour
         yield return ScaleTo(upgradeButtonDefaultScale * upScale, upDuration);
         yield return ScaleTo(upgradeButtonDefaultScale, returnDuration);
 
-        punchRoutine = null;
+        animRoutine = null;
+    }
+
+    private IEnumerator ShakeRoutine()
+    {
+        float timer = 0f;
+        float stepDuration = shakeDuration / Mathf.Max(1, shakeVibrato);
+
+        while (timer < shakeDuration)
+        {
+            timer += stepDuration;
+
+            float offsetX = Random.Range(-shakeStrength, shakeStrength);
+            upgradeButtonRect.anchoredPosition = upgradeButtonDefaultAnchoredPos + new Vector2(offsetX, 0f);
+
+            yield return new WaitForSecondsRealtime(stepDuration);
+        }
+
+        upgradeButtonRect.anchoredPosition = upgradeButtonDefaultAnchoredPos;
+        animRoutine = null;
     }
 
     private IEnumerator ScaleTo(Vector3 targetScale, float duration)
@@ -208,7 +293,7 @@ public class ConstructionUpgradeView : MonoBehaviour
         if (upgradeButton != null)
         {
             upgradeButton.gameObject.SetActive(!isMax);
-            upgradeButton.interactable = currentConstruction.CanUpgrade();
+            upgradeButton.interactable = !isProcessing;
         }
 
         if (maxObject != null)

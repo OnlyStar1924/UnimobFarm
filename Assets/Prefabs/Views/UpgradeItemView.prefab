@@ -544,6 +544,10 @@ MonoBehaviour:
   descText: {fileID: 3760308970618435473}
   buyButton: {fileID: 1725631536697428881}
   costText: {fileID: 1982800265358470436}
+  buyButtonRect: {fileID: 7929214127267445403}
+  shakeDuration: 0.2
+  shakeStrength: 12
+  shakeVibrato: 8
 --- !u!1 &5311292181791545853
 GameObject:
   m_ObjectHideFlags: 0

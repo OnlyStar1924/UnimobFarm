@@ -770,7 +770,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92925e3ec0e3f472b86cb86b62e33b2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentGold: 800000
+  currentGold: 8000
   goldText: {fileID: 2088098288}
 --- !u!4 &493717942
 Transform:
@@ -2376,6 +2376,9 @@ MonoBehaviour:
   downDuration: 0.06
   upDuration: 0.08
   returnDuration: 0.08
+  shakeDuration: 0.2
+  shakeStrength: 12
+  shakeVibrato: 8
 --- !u!114 &1627888216 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4316713434760736697, guid: 22a853b12f2114bc39874a3da3615686, type: 3}

@@ -26,12 +26,18 @@ public class ConstructionBuildView : MonoBehaviour
     [SerializeField] private float upDuration = 0.08f;
     [SerializeField] private float returnDuration = 0.08f;
 
+    [Header("Button Shake")]
+    [SerializeField] private float shakeDuration = 0.2f;
+    [SerializeField] private float shakeStrength = 12f;
+    [SerializeField] private int shakeVibrato = 8;
+
     private Camera mainCamera;
     private RectTransform rectTransform;
     private BoxController currentBox;
 
-    private Coroutine punchRoutine;
+    private Coroutine animRoutine;
     private Vector3 buildButtonDefaultScale = Vector3.one;
+    private Vector2 buildButtonDefaultAnchoredPos;
     private bool isProcessing;
 
     private float TotalPunchDuration => downDuration + upDuration + returnDuration;
@@ -51,7 +57,10 @@ public class ConstructionBuildView : MonoBehaviour
             buildButtonRect = buildButton.GetComponent<RectTransform>();
 
         if (buildButtonRect != null)
+        {
             buildButtonDefaultScale = buildButtonRect.localScale;
+            buildButtonDefaultAnchoredPos = buildButtonRect.anchoredPosition;
+        }
 
         gameObject.SetActive(false);
     }
@@ -74,7 +83,10 @@ public class ConstructionBuildView : MonoBehaviour
             closeButton.interactable = true;
 
         if (buildButtonRect != null)
+        {
             buildButtonRect.localScale = buildButtonDefaultScale;
+            buildButtonRect.anchoredPosition = buildButtonDefaultAnchoredPos;
+        }
 
         gameObject.SetActive(true);
 
@@ -100,6 +112,12 @@ public class ConstructionBuildView : MonoBehaviour
     {
         if (isProcessing) return;
         if (currentBox == null) return;
+
+        if (GameManager.Instance == null || GameManager.Instance.CurrentGold < currentBox.UnlockCost)
+        {
+            PlayBuildButtonShake();
+            return;
+        }
 
         StartCoroutine(CoBuildAfterPunch(currentBox));
     }
@@ -141,7 +159,7 @@ public class ConstructionBuildView : MonoBehaviour
                 closeButton.interactable = true;
 
             isProcessing = false;
-            Debug.Log("Not enough gold!");
+            PlayBuildButtonShake();
         }
     }
 
@@ -156,17 +174,30 @@ public class ConstructionBuildView : MonoBehaviour
             closeButton.interactable = true;
 
         if (buildButtonRect != null)
+        {
             buildButtonRect.localScale = buildButtonDefaultScale;
+            buildButtonRect.anchoredPosition = buildButtonDefaultAnchoredPos;
+        }
     }
 
     private void PlayBuildButtonPunch()
     {
         if (buildButtonRect == null) return;
 
-        if (punchRoutine != null)
-            StopCoroutine(punchRoutine);
+        if (animRoutine != null)
+            StopCoroutine(animRoutine);
 
-        punchRoutine = StartCoroutine(PunchRoutine());
+        animRoutine = StartCoroutine(PunchRoutine());
+    }
+
+    private void PlayBuildButtonShake()
+    {
+        if (buildButtonRect == null) return;
+
+        if (animRoutine != null)
+            StopCoroutine(animRoutine);
+
+        animRoutine = StartCoroutine(ShakeRoutine());
     }
 
     private IEnumerator PunchRoutine()
@@ -175,7 +206,26 @@ public class ConstructionBuildView : MonoBehaviour
         yield return ScaleTo(buildButtonDefaultScale * upScale, upDuration);
         yield return ScaleTo(buildButtonDefaultScale, returnDuration);
 
-        punchRoutine = null;
+        animRoutine = null;
+    }
+
+    private IEnumerator ShakeRoutine()
+    {
+        float timer = 0f;
+        float stepDuration = shakeDuration / Mathf.Max(1, shakeVibrato);
+
+        while (timer < shakeDuration)
+        {
+            timer += stepDuration;
+
+            float offsetX = Random.Range(-shakeStrength, shakeStrength);
+            buildButtonRect.anchoredPosition = buildButtonDefaultAnchoredPos + new Vector2(offsetX, 0f);
+
+            yield return new WaitForSecondsRealtime(stepDuration);
+        }
+
+        buildButtonRect.anchoredPosition = buildButtonDefaultAnchoredPos;
+        animRoutine = null;
     }
 
     private IEnumerator ScaleTo(Vector3 targetScale, float duration)
